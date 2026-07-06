@@ -6,10 +6,19 @@ Review:
     • const
     • Functions
     • Function overloading
-Exercise:
+Exercises:
 Create functions for:
     • factorial
     • fibonacci
     • gcd
     • lcm
     • prime checking
+Day3
+Study:
+    • references
+    • const correctness
+    • RAII
+    • smart pointers
+    • move semantics
+Exercises:
+     ^. classes
