@@ -42,6 +42,13 @@ Create classes that demonstrate:
 6. Move assignment operator
 
 ---
+## Day 4  ^`^s Study
+
+### Topics Covered
+- Copy constructor 
+- Move constructor
+- Rule of fives
+- Rule of zero
 
 ## Learning Goals
 
