@@ -1,53 +1,8 @@
-#include <iostream>
-#include <string>
 #include <vector>
 #include <memory>
+#include "MyClasses.hpp"
 
 using namespace std;
-
-class Person
-{
-public:
-    string name="Mohamed";
-    Person(string n) : name(n) {} //using a member initializer list (the preferred style
-    //The initializer list constructs name directly with "Alice" instead of constructing it first as an empty string and then assigning to it.
-        //This is generally more efficient and is the idiomatic C++ approach.
-    void print() const {//the const after the function means This function promises not to modify the object.
-            //A non-const member function cannot be called on a const object because it might modify the object.
-        std::cout << name<< endl;
-    }
-};
-class File
-{
-    FILE* file;
-
-public:
-    File(const char* name)
-    {
-        file = fopen(name, "r");
-    }
-
-    ~File()
-    {
-        fclose(file);
-    }
-};
-
-class Car {
-public:
-    string color="";
-    Car() {
-        std::cout << "Car created\n";
-    }
-
-    ~Car() {
-        std::cout << "Car destroyed\n";
-    }
-
-    void drive() {
-        std::cout << "Driving...\n";
-    }
-};
 
 void changecolor(std::unique_ptr<Car> ptr)
 {
