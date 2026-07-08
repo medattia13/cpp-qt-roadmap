@@ -50,6 +50,12 @@ Create classes that demonstrate:
 - Rule of fives
 - Rule of zero
 
+## Day 5
+
+### Topics Covered
+- Memory management exercises 
+- Small console programs
+
 ## Learning Goals
 
 By the end of Week 1, you should be able to:
@@ -61,3 +67,7 @@ By the end of Week 1, you should be able to:
 - Apply RAII principles.
 - Use smart pointers safely.
 - Understand and implement move semantics.
+
+
+# What i learned
+- Use standard library classes that manage dynamic memory for you
