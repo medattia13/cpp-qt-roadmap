@@ -5,8 +5,16 @@
 #include <QInputDialog>
 #include <QFile>
 #include <QTextStream>
-
-
+#include <QDateEdit>
+#include <QTimeEdit>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QDate>
+#include <QTime>
+#include <QCalendarWidget>
+#include <QDebug>
+#include <QDir>
 MainWindow::MainWindow()
 {
     setWindowTitle("My To Do Schedule");
@@ -15,13 +23,12 @@ MainWindow::MainWindow()
     QWidget *central = new QWidget;
     setCentralWidget(central);
 
-
+    QCalendarWidget *calendar = new QCalendarWidget;
     tasks = new QListWidget;
 
     tasks->setSelectionMode(
         QAbstractItemView::SingleSelection
         );
-
 
     QPushButton *add =
         new QPushButton("Add Task");
@@ -29,50 +36,82 @@ MainWindow::MainWindow()
     QPushButton *remove =
         new QPushButton("Delete Task");
 
+    QVBoxLayout *layout = new QVBoxLayout;
 
-    QVBoxLayout *layout =
-        new QVBoxLayout;
-
-
+    layout->addWidget(calendar);
     layout->addWidget(tasks);
     layout->addWidget(add);
     layout->addWidget(remove);
-
-
     central->setLayout(layout);
 
+    connect(calendar, &QCalendarWidget::selectionChanged,
+            this, [=]()
+            {
+                QDate selected = calendar->selectedDate();
 
+                for(int i = 0; i < tasks->count(); i++)
+                {
+                    QListWidgetItem *item = tasks->item(i);
+
+                    bool visible =
+                        item->data(Qt::UserRole).toDate() == selected;
+
+                    item->setHidden(!visible);
+                }
+            });
     connect(add, &QPushButton::clicked,
             this, [=]()
             {
                 bool ok;
 
-                QString text =
-                    QInputDialog::getText(
-                        this,
-                        "New Task",
-                        "Task:",
-                        QLineEdit::Normal,
-                        "",
-                        &ok
-                        );
+                QDialog dialog(this);
+                dialog.setWindowTitle("New Task");
 
+                QFormLayout form(&dialog);
 
-                if(ok && !text.isEmpty())
+                QLineEdit *taskEdit = new QLineEdit;
+
+                QDateEdit *dateEdit = new QDateEdit(QDate::currentDate());
+                dateEdit->setCalendarPopup(true);
+
+                QTimeEdit *timeEdit = new QTimeEdit(QTime::currentTime());
+
+                form.addRow("Task:", taskEdit);
+                form.addRow("Date:", dateEdit);
+                form.addRow("Time:", timeEdit);
+
+                QDialogButtonBox buttonBox(
+                    QDialogButtonBox::Ok |
+                    QDialogButtonBox::Cancel);
+
+                form.addWidget(&buttonBox);
+
+                connect(&buttonBox, &QDialogButtonBox::accepted,
+                        &dialog, &QDialog::accept);
+
+                connect(&buttonBox, &QDialogButtonBox::rejected,
+                        &dialog, &QDialog::reject);
+
+                if(dialog.exec() == QDialog::Accepted)
                 {
-                    QListWidgetItem *item =
-                        new QListWidgetItem(text);
+                    QString task = taskEdit->text();
 
-                    item->setCheckState(
-                        Qt::Unchecked
-                        );
+                    if(!task.isEmpty())
+                    {
+                        QListWidgetItem *item = new QListWidgetItem(
+                            QString("%1  %2")
+                                .arg(timeEdit->time().toString("hh:mm"))
+                                .arg(task)
+                            );
 
-                    tasks->addItem(item);
+                        item->setData(Qt::UserRole, dateEdit->date());
+                        item->setCheckState(Qt::Unchecked);
+                        tasks->addItem(item);
 
-                    saveTasks();
+                        saveTasks();
+                    }
                 }
             });
-
 
     connect(remove, &QPushButton::clicked,
             this, [=]()
@@ -84,7 +123,6 @@ MainWindow::MainWindow()
                 saveTasks();
             });
 
-
     connect(tasks,
             &QListWidget::itemChanged,
             this,
@@ -95,70 +133,76 @@ MainWindow::MainWindow()
 
 
     loadTasks();
+    emit calendar->selectionChanged();
+
 }
-
-
 
 void MainWindow::saveTasks()
 {
     QFile file("tasks.txt");
 
-    if(file.open(QIODevice::WriteOnly))
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return;
+
+    QTextStream out(&file);
+
+    for (int i = 0; i < tasks->count(); i++)
     {
-        QTextStream out(&file);
+        QListWidgetItem *item = tasks->item(i);
 
+        QDate date = item->data(Qt::UserRole).toDate();
 
-        for(int i=0;i<tasks->count();i++)
-        {
-            auto item = tasks->item(i);
+        QString text = item->text();
 
-            out
-                << item->checkState()
-                << "|"
-                << item->text()
-                << "\n";
-        }
+        QString time = text.left(5);
+        QString task = text.mid(6);
+
+        out << item->checkState()
+            << "|"
+            << task
+            << "|"
+            << date.toString("dd/MM/yyyy")
+            << "|"
+            << time
+            << "\n";
     }
-}
 
+    file.close();
+}
 
 
 void MainWindow::loadTasks()
 {
     QFile file("tasks.txt");
 
-    if(file.open(QIODevice::ReadOnly))
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+
+    QTextStream in(&file);
+
+    while (!in.atEnd())
     {
-        QTextStream in(&file);
+        QStringList parts = in.readLine().split("|");
 
-
-        while(!in.atEnd())
+        if(parts.size() == 4)
         {
-            QString line =
-                in.readLine();
-
-
-            QStringList parts =
-                line.split("|");
-
-
-            if(parts.size()==2)
-            {
-                QListWidgetItem *item =
-                    new QListWidgetItem(
-                        parts[1]
-                        );
-
-
-                item->setCheckState(
-                    static_cast<Qt::CheckState>(
-                        parts[0].toInt()
-                        )
+            QListWidgetItem *item =
+                new QListWidgetItem(
+                    parts[3] + " " + parts[1]
                     );
 
+            item->setCheckState(
+                static_cast<Qt::CheckState>(parts[0].toInt())
+                );
 
-                tasks->addItem(item);
-            }
+            item->setData(
+                Qt::UserRole,
+                QDate::fromString(parts[2], "dd/MM/yyyy")
+                );
+
+            tasks->addItem(item);
         }
     }
+
+    file.close();
 }
