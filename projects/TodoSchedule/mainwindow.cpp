@@ -71,7 +71,7 @@ MainWindow::MainWindow()
 
                 QLineEdit *taskEdit = new QLineEdit;
 
-                QDateEdit *dateEdit = new QDateEdit(QDate::currentDate());
+                QDateEdit *dateEdit = new QDateEdit(calendar->selectedDate());
                 dateEdit->setCalendarPopup(true);
 
                 QTimeEdit *timeEdit = new QTimeEdit(QTime::currentTime());
@@ -107,7 +107,6 @@ MainWindow::MainWindow()
                         item->setData(Qt::UserRole, dateEdit->date());
                         item->setCheckState(Qt::Unchecked);
                         tasks->addItem(item);
-
                         saveTasks();
                     }
                 }
@@ -201,6 +200,7 @@ void MainWindow::loadTasks()
                 );
 
             tasks->addItem(item);
+
         }
     }
 
