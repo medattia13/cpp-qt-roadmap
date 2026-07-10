@@ -70,6 +70,7 @@ MainWindow::MainWindow()
                 QFormLayout form(&dialog);
 
                 QLineEdit *taskEdit = new QLineEdit;
+                QLineEdit *locationEdit = new QLineEdit;
 
                 QDateEdit *dateEdit = new QDateEdit(calendar->selectedDate());
                 dateEdit->setCalendarPopup(true);
@@ -79,6 +80,7 @@ MainWindow::MainWindow()
                 form.addRow("Task:", taskEdit);
                 form.addRow("Date:", dateEdit);
                 form.addRow("Time:", timeEdit);
+                form.addRow("Where:", locationEdit);
 
                 QDialogButtonBox buttonBox(
                     QDialogButtonBox::Ok |
@@ -95,17 +97,24 @@ MainWindow::MainWindow()
                 if(dialog.exec() == QDialog::Accepted)
                 {
                     QString task = taskEdit->text();
+                    QString location = locationEdit->text();
 
                     if(!task.isEmpty())
                     {
                         QListWidgetItem *item = new QListWidgetItem(
-                            QString("%1  %2")
+                            QString("%1  %2  %3")
                                 .arg(timeEdit->time().toString("hh:mm"))
                                 .arg(task)
+                                .arg(location)
                             );
 
+
                         item->setData(Qt::UserRole, dateEdit->date());
+                        item->setData(Qt::UserRole + 1, timeEdit->time());
+                        item->setData(Qt::UserRole + 2, locationEdit->text());
+
                         item->setCheckState(Qt::Unchecked);
+
                         tasks->addItem(item);
                         saveTasks();
                     }
@@ -155,6 +164,7 @@ void MainWindow::saveTasks()
 
         QString time = text.left(5);
         QString task = text.mid(6);
+        QString location = text.mid(7);
 
         out << item->checkState()
             << "|"
