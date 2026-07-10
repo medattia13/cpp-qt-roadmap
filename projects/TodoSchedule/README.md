@@ -3,6 +3,7 @@
 ###Add task
 ###Delete task
 ###Save tasks to a txt file
+###Location, date, time, task, checkbox
 
 I will make this app into a app that directs my actions;. Key questions are:
 * When to do?
