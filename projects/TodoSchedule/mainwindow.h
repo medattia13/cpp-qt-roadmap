@@ -17,6 +17,7 @@
 #include <QTime>
 #include <QCalendarWidget>
 #include <QDebug>
+#include <QComboBox>
 #include <QDir>
 class MainWindow : public QMainWindow
 {
@@ -30,12 +31,16 @@ public:
         QDate date;
         QTime time;
     };
+    QStringList locations;
+
 private:
     QListWidget *tasks;
     void editTask();
     void saveTasks();
     void loadTasks();
     bool showTaskDialog(TaskData &data, const QString &title);
+    void saveLocations();
+
 
 };
 

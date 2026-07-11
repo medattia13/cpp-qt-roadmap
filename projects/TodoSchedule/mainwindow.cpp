@@ -17,12 +17,15 @@
 #include <QDir>
 MainWindow::MainWindow()
 {
+    locations << "Home"
+              << "School"
+              << "Work"
+              << "Gym";
     setWindowTitle("My To Do Schedule");
     resize(400, 500);
-
+    //QStringList locations;
     QWidget *central = new QWidget;
     setCentralWidget(central);
-
     QCalendarWidget *calendar = new QCalendarWidget;
     tasks = new QListWidget;
 
@@ -61,96 +64,44 @@ MainWindow::MainWindow()
                     item->setHidden(!visible);
                 }
             });
+
     connect(add, &QPushButton::clicked,
             this, [=]()
             {
-                bool ok;
+                TaskData data;
 
-                QDialog dialog(this);
-                dialog.setWindowTitle("New Task");
+                data.date = calendar->selectedDate();
+                data.time = QTime::currentTime();
 
-                QFormLayout form(&dialog);
-
-                QLineEdit *taskEdit = new QLineEdit;
-                QLineEdit *locationEdit = new QLineEdit;
-
-                QDateEdit *dateEdit = new QDateEdit(calendar->selectedDate());
-                dateEdit->setCalendarPopup(true);
-
-                QTimeEdit *timeEdit = new QTimeEdit(QTime::currentTime());
-
-                form.addRow("Task:", taskEdit);
-                form.addRow("Date:", dateEdit);
-                form.addRow("Time:", timeEdit);
-                form.addRow("Where:", locationEdit);
-
-                QDialogButtonBox buttonBox(
-                    QDialogButtonBox::Ok |
-                    QDialogButtonBox::Cancel);
-
-                form.addWidget(&buttonBox);
-
-                connect(&buttonBox, &QDialogButtonBox::accepted,
-                        &dialog, &QDialog::accept);
-
-                connect(&buttonBox, &QDialogButtonBox::rejected,
-                        &dialog, &QDialog::reject);
-
-                if(dialog.exec() == QDialog::Accepted)
+                if (showTaskDialog(data, "New Task"))
                 {
-                    QString task = taskEdit->text();
-                    QString location = locationEdit->text();
-
-                    if(!task.isEmpty())
+                    //if (!data.location.isEmpty() &&
+                      //  !locations.contains(data.location))
                     {
-                        QListWidgetItem *item = new QListWidgetItem(
-                            QString("%1  %2  %3")
-                                .arg(timeEdit->time().toString("hh:mm"))
-                                .arg(task)
-                                .arg(location)
-                            );
-
-
-                        item->setData(Qt::UserRole, dateEdit->date());
-                        item->setData(Qt::UserRole + 1, timeEdit->time());
-                        item->setData(Qt::UserRole + 2, locationEdit->text());
-
-                        item->setCheckState(Qt::Unchecked);
-
-                        tasks->addItem(item);
-                        saveTasks();
+                        locations.append(data.location);
+                        saveLocations();   // if you have this function
                     }
-                }
-            });
 
-    connect(edit, &QPushButton::clicked,
-            this, &MainWindow::editTask);
-    /*
-    connect(edit, &QPushButton::clicked,
-            this, [=]()
-            {
-                QListWidgetItem *item = tasks->currentItem();
-
-                if (item)
-                {
-                    bool ok;
-                    QString newText = QInputDialog::getText(
-                        this,
-                        "Edit Task",
-                        "Task:",
-                        QLineEdit::Normal,
-                        item->text(),
-                        &ok
+                    QListWidgetItem *item = new QListWidgetItem(
+                        QString("%1  %2  %3")
+                            .arg(data.time.toString("hh:mm"))
+                            .arg(data.task)
+                            .arg(data.location)
                         );
 
-                    if (ok && !newText.trimmed().isEmpty())
-                    {
-                        item->setText(newText);
-                        saveTasks();
-                    }
+                    item->setData(Qt::UserRole, data.date);
+                    item->setData(Qt::UserRole + 1, data.time);
+                    item->setData(Qt::UserRole + 2, data.location);
+
+                    item->setCheckState(Qt::Unchecked);
+
+                    tasks->addItem(item);
+                    saveTasks();
                 }
             });
-    */
+    connect(edit, &QPushButton::clicked,
+            this, &MainWindow::editTask);
+
     connect(remove, &QPushButton::clicked,
             this, [=]()
             {
@@ -174,42 +125,30 @@ MainWindow::MainWindow()
     emit calendar->selectionChanged();
 
 }
-void MainWindow::editTask()
+
+bool MainWindow::showTaskDialog(TaskData &data,const QString &title)
 {
-    QListWidgetItem *item = tasks->currentItem();
-
-    if (!item)
-        return;
-
     QDialog dialog(this);
-    dialog.setWindowTitle("Edit Task");
+    dialog.setWindowTitle(title);
 
     QFormLayout form(&dialog);
 
-    QLineEdit *taskEdit = new QLineEdit;
-    QLineEdit *locationEdit = new QLineEdit;
+    QLineEdit *taskEdit = new QLineEdit(data.task);
 
-    QDateEdit *dateEdit = new QDateEdit(
-        item->data(Qt::UserRole).toDate()
-        );
+    QComboBox *locationBox = new QComboBox;
+    locationBox->setEditable(true);
+    locationBox->addItems(locations);
+    locationBox->setCurrentText(data.location);
+
+    QDateEdit *dateEdit = new QDateEdit(data.date);
     dateEdit->setCalendarPopup(true);
 
-    QTimeEdit *timeEdit = new QTimeEdit(
-        item->data(Qt::UserRole + 1).toTime()
-        );
-
-    // Load existing values
-    QString taskText = item->text();
-
-    taskEdit->setText(taskText.section("  ", 1, 1));
-    locationEdit->setText(
-        item->data(Qt::UserRole + 2).toString()
-        );
+    QTimeEdit *timeEdit = new QTimeEdit(data.time);
 
     form.addRow("Task:", taskEdit);
     form.addRow("Date:", dateEdit);
     form.addRow("Time:", timeEdit);
-    form.addRow("Where:", locationEdit);
+    form.addRow("Where:", locationBox);
 
     QDialogButtonBox buttonBox(
         QDialogButtonBox::Ok |
@@ -224,26 +163,45 @@ void MainWindow::editTask()
     connect(&buttonBox, &QDialogButtonBox::rejected,
             &dialog, &QDialog::reject);
 
-    if (dialog.exec() == QDialog::Accepted)
+    if (dialog.exec() != QDialog::Accepted)
+        return false;
+
+    data.task = taskEdit->text();
+    data.location = locationBox->currentText();
+    data.date = dateEdit->date();
+    data.time = timeEdit->time();
+
+    return !data.task.isEmpty();
+}
+
+void MainWindow::editTask()
+{
+    QListWidgetItem *item = tasks->currentItem();
+
+    if (!item)
+        return;
+
+    TaskData data;
+
+    data.task = item->text().section("  ", 1, 1);
+    data.date = item->data(Qt::UserRole).toDate();
+    data.time = item->data(Qt::UserRole + 1).toTime();
+    data.location = item->data(Qt::UserRole + 2).toString();
+
+    if (showTaskDialog(data, "Edit Task"))
     {
-        QString task = taskEdit->text();
-        QString location = locationEdit->text();
+        item->setText(
+            QString("%1  %2  %3")
+                .arg(data.time.toString("hh:mm"))
+                .arg(data.task)
+                .arg(data.location)
+            );
 
-        if (!task.isEmpty())
-        {
-            item->setText(
-                QString("%1  %2  %3")
-                    .arg(timeEdit->time().toString("hh:mm"))
-                    .arg(task)
-                    .arg(location)
-                );
+        item->setData(Qt::UserRole, data.date);
+        item->setData(Qt::UserRole + 1, data.time);
+        item->setData(Qt::UserRole + 2, data.location);
 
-            item->setData(Qt::UserRole, dateEdit->date());
-            item->setData(Qt::UserRole + 1, timeEdit->time());
-            item->setData(Qt::UserRole + 2, location);
-
-            saveTasks();
-        }
+        saveTasks();
     }
 }
 void MainWindow::saveTasks()
@@ -279,7 +237,18 @@ void MainWindow::saveTasks()
 
     file.close();
 }
+void MainWindow::saveLocations()
+{
+    QFile file("locations.txt");
 
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        QTextStream out(&file);
+
+        for (const QString &location : locations)
+            out << location << '\n';
+    }
+}
 
 void MainWindow::loadTasks()
 {
