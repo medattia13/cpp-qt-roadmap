@@ -5,7 +5,7 @@
 build/
 bin/
 out/
-
+**tests/
 # Object files
 *.o
 *.obj
